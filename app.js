@@ -2,7 +2,7 @@
 // IMPORTANT: Get your anon/public key from Supabase Dashboard > Settings > API
 // It should be a long JWT token starting with "eyJ..."
 const SUPABASE_URL = 'https://plxcgmdicebzojyjdwzc.supabase.co';
-const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE'; // Replace this with your actual anon key from Supabase dashboard
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseGNnbWRpY2Viem9qeWpkd3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNjkwMjQsImV4cCI6MjA4Mzc0NTAyNH0.aeksysvhY9X340U6iWQJyUEnNPQ4o5CLbtDICxAgEeg'; // Replace this with your actual anon key from Supabase dashboard
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
