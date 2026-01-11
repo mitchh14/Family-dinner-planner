@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Planner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="main-nav" class="nav hidden">
+        <div class="nav-container">
+            <h1 class="nav-brand">Meal Planner</h1>
+            <div class="nav-links">
+                <a href="#meals" class="nav-link">Meal Library</a>
+                <a href="#planner" class="nav-link">Weekly Planner</a>
+                <a href="#grocery" class="nav-link">Grocery List</a>
+                <button id="logout-btn" class="btn-link">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div id="app">
+
+        <!-- Login Page -->
+        <div id="login-page" class="page">
+            <div class="auth-container">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div class="auth-switch">
+                        Don't have an account? <a href="#signup">Sign up</a>
+                    </div>
+                </form>
+                <div id="login-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Signup Page -->
+        <div id="signup-page" class="page hidden">
+            <div class="auth-container">
+                <h2>Sign Up</h2>
+                <form id="signup-form">
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                    <div class="auth-switch">
+                        Already have an account? <a href="#login">Login</a>
+                    </div>
+                </form>
+                <div id="signup-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Meal Library Page -->
+        <div id="meals-page" class="page hidden">
+            <div class="page-header">
+                <h2>Meal Library</h2>
+                <button id="add-meal-btn" class="btn btn-primary">+ Add New Meal</button>
+            </div>
+
+            <div class="filters">
+                <input type="text" id="meal-search" placeholder="Search meals..." class="search-input">
+                <select id="rating-filter" class="filter-select">
+                    <option value="">All Ratings</option>
+                    <option value="5">5 Stars</option>
+                    <option value="4">4+ Stars</option>
+                    <option value="3">3+ Stars</option>
+                </select>
+            </div>
+
+            <div id="meals-grid" class="meals-grid"></div>
+        </div>
+
+        <!-- Add/Edit Meal Page -->
+        <div id="meal-form-page" class="page hidden">
+            <div class="page-header">
+                <h2 id="meal-form-title">Add New Meal</h2>
+                <button id="cancel-meal-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+
+            <form id="meal-form" class="meal-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="meal-name">Meal Name *</label>
+                        <input type="text" id="meal-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="meal-rating">Rating</label>
+                        <div class="star-rating" id="star-rating">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                        </div>
+                        <input type="hidden" id="meal-rating" value="0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="main-dish">Main Dish</label>
+                        <input type="text" id="main-dish">
+                    </div>
+                    <div class="form-group">
+                        <label for="side-grain">Side Grain</label>
+                        <input type="text" id="side-grain">
+                    </div>
+                    <div class="form-group">
+                        <label for="side-veg">Side Vegetable</label>
+                        <input type="text" id="side-veg">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="recipe-link">Recipe Link</label>
+                    <input type="url" id="recipe-link">
+                </div>
+
+                <div class="form-group">
+                    <label for="meal-notes">Notes</label>
+                    <textarea id="meal-notes" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Ingredients</label>
+                    <div id="ingredients-list"></div>
+                    <button type="button" id="add-ingredient-btn" class="btn btn-secondary">+ Add Ingredient</button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Meal</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Weekly Planner Page -->
+        <div id="planner-page" class="page hidden">
+            <div class="page-header">
+                <h2>Weekly Planner</h2>
+                <div class="week-navigation">
+                    <button id="prev-week-btn" class="btn btn-secondary">← Previous</button>
+                    <span id="current-week" class="week-display"></span>
+                    <button id="next-week-btn" class="btn btn-secondary">Next →</button>
+                </div>
+            </div>
+
+            <div class="planner-grid" id="planner-grid"></div>
+
+            <button id="generate-grocery-btn" class="btn btn-primary">Generate Grocery List</button>
+        </div>
+
+        <!-- Grocery List Page -->
+        <div id="grocery-page" class="page hidden">
+            <div class="page-header">
+                <h2>Grocery List</h2>
+                <button id="clear-grocery-btn" class="btn btn-secondary">Clear Checked Items</button>
+            </div>
+
+            <div id="grocery-list" class="grocery-list"></div>
+        </div>
+
+    </div>
+
+    <!-- Meal Selection Modal -->
+    <div id="meal-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select a Meal</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="modal-meal-search" placeholder="Search meals..." class="search-input">
+                <div id="modal-meals-list" class="modal-meals-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
