@@ -1,10 +1,15 @@
 // Supabase Configuration
-// IMPORTANT: Get your anon/public key from Supabase Dashboard > Settings > API
-// It should be a long JWT token starting with "eyJ..."
+// Get your anon key from: Supabase Dashboard > Settings > API > Project API keys > anon public
 const SUPABASE_URL = 'https://plxcgmdicebzojyjdwzc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseGNnbWRpY2Viem9qeWpkd3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNjkwMjQsImV4cCI6MjA4Mzc0NTAyNH0.aeksysvhY9X340U6iWQJyUEnNPQ4o5CLbtDICxAgEeg'; // Replace this with your actual anon key from Supabase dashboard
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseGNnbWRpY2Viem9qeWpkd3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNjkwMjQsImV4cCI6MjA4Mzc0NTAyNH0.aeksysvhY9X340U6iWQJyUEnNPQ4o5CLbtDICxAgEeg';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Configuration check
+console.log('Supabase initialized with URL:', SUPABASE_URL);
+if (SUPABASE_KEY === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+    console.error('⚠️ SUPABASE_KEY not configured! Please update app.js with your anon key.');
+}
 
 // Global State
 let currentUser = null;
@@ -26,7 +31,12 @@ function hideLoading() {
 function showError(elementId, message) {
     const errorEl = document.getElementById(elementId);
     errorEl.textContent = message;
-    setTimeout(() => errorEl.textContent = '', 5000);
+    errorEl.style.display = 'block';
+    // Keep error visible for longer (10 seconds) so user can read it
+    setTimeout(() => {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+    }, 10000);
 }
 
 function showPage(pageId) {
@@ -62,6 +72,8 @@ async function handleLogin(e) {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
+    console.log('Attempting login for:', email);
+
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -70,8 +82,19 @@ async function handleLogin(e) {
     hideLoading();
 
     if (error) {
-        showError('login-error', error.message);
+        console.error('Login error:', error);
+        let errorMessage = error.message;
+
+        // Provide more helpful error messages
+        if (error.message.includes('Invalid login credentials')) {
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+            errorMessage = 'Please confirm your email address. Check your inbox for the confirmation link.';
+        }
+
+        showError('login-error', errorMessage);
     } else {
+        console.log('Login successful:', data.user.email);
         currentUser = data.user;
         initApp();
     }
@@ -84,18 +107,38 @@ async function handleSignup(e) {
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
 
+    console.log('Attempting signup for:', email);
+
     const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+            emailRedirectTo: window.location.origin
+        }
     });
 
     hideLoading();
 
     if (error) {
+        console.error('Signup error:', error);
         showError('signup-error', error.message);
     } else {
-        alert('Signup successful! Please check your email to confirm your account, then login.');
-        window.location.hash = '#login';
+        console.log('Signup response:', data);
+
+        // Check if email confirmation is required
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+            // User already exists
+            showError('signup-error', 'An account with this email already exists. Please login instead.');
+        } else if (data.session) {
+            // Auto-confirmed (confirmation disabled in Supabase settings)
+            console.log('Account auto-confirmed, logging in...');
+            currentUser = data.user;
+            initApp();
+        } else {
+            // Email confirmation required
+            alert('Signup successful! Please check your email to confirm your account, then login.');
+            window.location.hash = '#login';
+        }
     }
 }
 
@@ -668,17 +711,32 @@ function handleRoute() {
 
 // Initialize App
 async function initApp() {
-    const { data: { user } } = await supabase.auth.getUser();
+    console.log('Initializing app...');
 
-    if (user) {
-        currentUser = user;
-        document.getElementById('main-nav').classList.remove('hidden');
-        if (!window.location.hash || window.location.hash === '#login' || window.location.hash === '#signup') {
-            window.location.hash = '#meals';
-        } else {
-            handleRoute();
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error) {
+            console.error('Error getting user:', error);
+            throw error;
         }
-    } else {
+
+        if (user) {
+            console.log('User authenticated:', user.email);
+            currentUser = user;
+            document.getElementById('main-nav').classList.remove('hidden');
+            if (!window.location.hash || window.location.hash === '#login' || window.location.hash === '#signup') {
+                window.location.hash = '#meals';
+            } else {
+                handleRoute();
+            }
+        } else {
+            console.log('No user session found');
+            document.getElementById('main-nav').classList.add('hidden');
+            window.location.hash = '#login';
+        }
+    } catch (error) {
+        console.error('Error in initApp:', error);
         document.getElementById('main-nav').classList.add('hidden');
         window.location.hash = '#login';
     }
@@ -740,6 +798,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Router
     window.addEventListener('hashchange', handleRoute);
+
+    // Auth state change listener
+    supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+
+        if (event === 'SIGNED_IN' && session) {
+            currentUser = session.user;
+            document.getElementById('main-nav').classList.remove('hidden');
+        } else if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            document.getElementById('main-nav').classList.add('hidden');
+            window.location.hash = '#login';
+        } else if (event === 'USER_UPDATED') {
+            currentUser = session?.user || null;
+        }
+    });
 
     // Initialize
     initApp();
