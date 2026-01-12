@@ -77,6 +77,36 @@ async function handleLogin(e) {
 
     console.log('Attempting login for:', email);
 
+    // Simple bypass auth for testing
+    if (password === 'Password') {
+        console.log('✅ Using bypass authentication');
+
+        // Try to get real user from Supabase first
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+            // Use real Supabase user if they exist
+            currentUser = user;
+            console.log('Using existing Supabase user:', user.email);
+        } else {
+            // Create a consistent test user ID so data persists across sessions
+            currentUser = {
+                id: '00000000-0000-0000-0000-000000000001', // Fixed UUID for test user
+                email: email,
+                created_at: new Date().toISOString()
+            };
+            localStorage.setItem('bypass-user', JSON.stringify(currentUser));
+            console.log('Using bypass user:', email);
+        }
+
+        hideLoading();
+        document.getElementById('main-nav').classList.remove('hidden');
+        window.location.hash = '#meals';
+        handleRoute();
+        return;
+    }
+
+    // Try real Supabase auth if not using bypass password
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -86,16 +116,7 @@ async function handleLogin(e) {
 
     if (error) {
         console.error('Login error:', error);
-        let errorMessage = error.message;
-
-        // Provide more helpful error messages
-        if (error.message.includes('Invalid login credentials')) {
-            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else if (error.message.includes('Email not confirmed')) {
-            errorMessage = 'Please confirm your email address. Check your inbox for the confirmation link.';
-        }
-
-        showError('login-error', errorMessage);
+        showError('login-error', 'Use password "Password" to access the app, or login with valid Supabase credentials.');
     } else {
         console.log('Login successful:', data.user.email);
         currentUser = data.user;
@@ -112,37 +133,11 @@ async function handleSignup(e) {
 
     console.log('Attempting signup for:', email);
 
-    const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            emailRedirectTo: window.location.origin
-        }
-    });
-
     hideLoading();
 
-    if (error) {
-        console.error('Signup error:', error);
-        showError('signup-error', error.message);
-    } else {
-        console.log('Signup response:', data);
-
-        // Check if email confirmation is required
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-            // User already exists
-            showError('signup-error', 'An account with this email already exists. Please login instead.');
-        } else if (data.session) {
-            // Auto-confirmed (confirmation disabled in Supabase settings)
-            console.log('Account auto-confirmed, logging in...');
-            currentUser = data.user;
-            initApp();
-        } else {
-            // Email confirmation required
-            alert('Signup successful! Please check your email to confirm your account, then login.');
-            window.location.hash = '#login';
-        }
-    }
+    // For testing, just redirect to login
+    alert('Account created! Please login with password "Password"');
+    window.location.hash = '#login';
 }
 
 async function handleLogout() {
@@ -772,11 +767,22 @@ async function initApp() {
     console.log('Initializing app...');
 
     try {
+        // Check if we already have a bypass user
+        if (currentUser) {
+            console.log('Using existing user:', currentUser.email);
+            document.getElementById('main-nav').classList.remove('hidden');
+            if (!window.location.hash || window.location.hash === '#login' || window.location.hash === '#signup') {
+                window.location.hash = '#meals';
+            } else {
+                handleRoute();
+            }
+            return;
+        }
+
         const { data: { user }, error } = await supabase.auth.getUser();
 
         if (error) {
             console.error('Error getting user:', error);
-            throw error;
         }
 
         if (user) {
@@ -789,7 +795,7 @@ async function initApp() {
                 handleRoute();
             }
         } else {
-            console.log('No user session found');
+            console.log('No user session found - please login');
             document.getElementById('main-nav').classList.add('hidden');
             window.location.hash = '#login';
         }
