@@ -13,13 +13,12 @@
     </div>
 
     <!-- Navigation -->
-    <nav id="main-nav" class="nav hidden">
+    <nav id="main-nav" class="nav">
         <div class="nav-container">
             <h1 class="nav-brand">Meal Planner</h1>
             <div class="nav-links">
                 <a href="#meals" class="nav-link">Recipe Library</a>
                 <a href="#planner" class="nav-link">Weekly Planner</a>
-                <button id="logout-btn" class="btn-link">Logout</button>
             </div>
         </div>
     </nav>
@@ -27,55 +26,8 @@
     <!-- Main Container -->
     <div id="app">
 
-        <!-- Login Page -->
-        <div id="login-page" class="page">
-            <div class="auth-container">
-                <h2>Login</h2>
-                <p style="text-align: center; color: #6c757d; margin-bottom: 1rem;">
-                    Enter any email and use password: <strong>Password</strong>
-                </p>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="login-email">Email</label>
-                        <input type="email" id="login-email" required placeholder="your@email.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="login-password">Password</label>
-                        <input type="password" id="login-password" required placeholder="Password">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                    <div class="auth-switch">
-                        Don't have an account? <a href="#signup">Sign up</a>
-                    </div>
-                </form>
-                <div id="login-error" class="error-message"></div>
-            </div>
-        </div>
-
-        <!-- Signup Page -->
-        <div id="signup-page" class="page hidden">
-            <div class="auth-container">
-                <h2>Sign Up</h2>
-                <form id="signup-form">
-                    <div class="form-group">
-                        <label for="signup-email">Email</label>
-                        <input type="email" id="signup-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="signup-password">Password</label>
-                        <input type="password" id="signup-password" required minlength="6">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Sign Up</button>
-                    <div class="auth-switch">
-                        Already have an account? <a href="#login">Login</a>
-                    </div>
-                </form>
-                <div id="signup-error" class="error-message"></div>
-            </div>
-        </div>
-
         <!-- Meal Library Page -->
-        <div id="meals-page" class="page hidden">
+        <div id="meals-page" class="page">
             <div class="page-header">
                 <h2>Recipe Library</h2>
                 <button id="add-meal-btn" class="btn btn-primary">+ Add Recipe</button>
@@ -192,6 +144,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=7"></script>
+    <script src="app.js?v=8"></script>
 </body>
 </html>

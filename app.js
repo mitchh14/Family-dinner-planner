@@ -67,86 +67,7 @@ function formatDateISO(date) {
     return date.toISOString().split('T')[0];
 }
 
-// Authentication Functions
-async function handleLogin(e) {
-    e.preventDefault();
-    showLoading();
-
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-
-    console.log('Attempting login for:', email);
-
-    // Simple bypass auth for testing
-    if (password === 'Password') {
-        console.log('✅ Using bypass authentication');
-
-        // Try to get real user from Supabase first
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user) {
-            // Use real Supabase user if they exist
-            currentUser = user;
-            console.log('Using existing Supabase user:', user.email);
-        } else {
-            // Create a consistent test user ID so data persists across sessions
-            currentUser = {
-                id: '00000000-0000-0000-0000-000000000001', // Fixed UUID for test user
-                email: email,
-                created_at: new Date().toISOString()
-            };
-            localStorage.setItem('bypass-user', JSON.stringify(currentUser));
-            console.log('Using bypass user:', email);
-        }
-
-        hideLoading();
-        document.getElementById('main-nav').classList.remove('hidden');
-        window.location.hash = '#meals';
-        handleRoute();
-        return;
-    }
-
-    // Try real Supabase auth if not using bypass password
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-    });
-
-    hideLoading();
-
-    if (error) {
-        console.error('Login error:', error);
-        showError('login-error', 'Use password "Password" to access the app, or login with valid Supabase credentials.');
-    } else {
-        console.log('Login successful:', data.user.email);
-        currentUser = data.user;
-        initApp();
-    }
-}
-
-async function handleSignup(e) {
-    e.preventDefault();
-    showLoading();
-
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
-
-    console.log('Attempting signup for:', email);
-
-    hideLoading();
-
-    // For testing, just redirect to login
-    alert('Account created! Please login with password "Password"');
-    window.location.hash = '#login';
-}
-
-async function handleLogout() {
-    await supabase.auth.signOut();
-    currentUser = null;
-    document.getElementById('main-nav').classList.add('hidden');
-    window.location.hash = '#login';
-    showPage('login-page');
-}
+// No authentication - app loads directly
 
 // Meal Library Functions
 async function loadMeals(searchTerm = '', ratingFilter = '') {
@@ -462,7 +383,7 @@ function renderWeeklyPlanner(plannedMeals) {
     const menuMeals = plannedMeals.filter(pm => pm.day_of_week === null || pm.day_of_week === undefined);
 
     if (menuMeals.length === 0) {
-        menuContainer.innerHTML = '<p class="empty-state">Click "Add Recipe to Menu" to build this week's meal plan</p>';
+        menuContainer.innerHTML = '<p class="empty-state">Click "Add Recipe to Menu" to build this week\'s meal plan</p>';
     } else {
         menuContainer.innerHTML = menuMeals.map(pm => `
             <div class="menu-item" draggable="true" data-meal-id="${pm.meal_id}" data-planned-id="${pm.id}">
@@ -728,20 +649,9 @@ function clearCheckedItems() {
 
 // Router
 function handleRoute() {
-    const hash = window.location.hash.slice(1) || 'login';
-
-    if (!currentUser && hash !== 'login' && hash !== 'signup') {
-        window.location.hash = '#login';
-        return;
-    }
+    const hash = window.location.hash.slice(1) || 'meals';
 
     switch (hash) {
-        case 'login':
-            showPage('login-page');
-            break;
-        case 'signup':
-            showPage('signup-page');
-            break;
         case 'meals':
             showPage('meals-page');
             loadMeals();
@@ -754,11 +664,7 @@ function handleRoute() {
             showPage('grocery-page');
             break;
         default:
-            if (currentUser) {
-                window.location.hash = '#meals';
-            } else {
-                window.location.hash = '#login';
-            }
+            window.location.hash = '#meals';
     }
 }
 
@@ -766,53 +672,24 @@ function handleRoute() {
 async function initApp() {
     console.log('Initializing app...');
 
-    try {
-        // Check if we already have a bypass user
-        if (currentUser) {
-            console.log('Using existing user:', currentUser.email);
-            document.getElementById('main-nav').classList.remove('hidden');
-            if (!window.location.hash || window.location.hash === '#login' || window.location.hash === '#signup') {
-                window.location.hash = '#meals';
-            } else {
-                handleRoute();
-            }
-            return;
-        }
+    // Create a default test user with fixed UUID for data persistence
+    currentUser = {
+        id: '00000000-0000-0000-0000-000000000001',
+        email: 'test@mealplanner.com',
+        created_at: new Date().toISOString()
+    };
 
-        const { data: { user }, error } = await supabase.auth.getUser();
+    console.log('Using test user:', currentUser.email);
 
-        if (error) {
-            console.error('Error getting user:', error);
-        }
-
-        if (user) {
-            console.log('User authenticated:', user.email);
-            currentUser = user;
-            document.getElementById('main-nav').classList.remove('hidden');
-            if (!window.location.hash || window.location.hash === '#login' || window.location.hash === '#signup') {
-                window.location.hash = '#meals';
-            } else {
-                handleRoute();
-            }
-        } else {
-            console.log('No user session found - please login');
-            document.getElementById('main-nav').classList.add('hidden');
-            window.location.hash = '#login';
-        }
-    } catch (error) {
-        console.error('Error in initApp:', error);
-        document.getElementById('main-nav').classList.add('hidden');
-        window.location.hash = '#login';
+    // Start the app
+    if (!window.location.hash || window.location.hash === '#') {
+        window.location.hash = '#meals';
     }
+    handleRoute();
 }
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // Auth
-    document.getElementById('login-form').addEventListener('submit', handleLogin);
-    document.getElementById('signup-form').addEventListener('submit', handleSignup);
-    document.getElementById('logout-btn').addEventListener('click', handleLogout);
-
     // Meals
     document.getElementById('add-meal-btn').addEventListener('click', () => showMealForm());
     document.getElementById('cancel-meal-btn').addEventListener('click', () => window.location.hash = '#meals');
@@ -861,22 +738,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Router
     window.addEventListener('hashchange', handleRoute);
-
-    // Auth state change listener
-    supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-
-        if (event === 'SIGNED_IN' && session) {
-            currentUser = session.user;
-            document.getElementById('main-nav').classList.remove('hidden');
-        } else if (event === 'SIGNED_OUT') {
-            currentUser = null;
-            document.getElementById('main-nav').classList.add('hidden');
-            window.location.hash = '#login';
-        } else if (event === 'USER_UPDATED') {
-            currentUser = session?.user || null;
-        }
-    });
 
     // Initialize
     initApp();
