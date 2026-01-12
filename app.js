@@ -1,20 +1,14 @@
-// Prevent double initialization - check before any declarations
-if (window.MealPlannerApp) {
-    console.warn('⚠️ Meal Planner already initialized. This is likely a browser cache issue. Please hard refresh (Ctrl+Shift+R).');
-    // Don't throw error, just exit gracefully
-} else {
-    // Mark as initialized immediately
+// Prevent double initialization
+if (!window.MealPlannerApp) {
     window.MealPlannerApp = { initialized: true };
 
     // Supabase Configuration
-    // Get your anon key from: Supabase Dashboard > Settings > API > Project API keys > anon public
     const SUPABASE_URL = 'https://plxcgmdicebzojyjdwzc.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseGNnbWRpY2Viem9qeWpkd3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNjkwMjQsImV4cCI6MjA4Mzc0NTAyNH0.aeksysvhY9X340U6iWQJyUEnNPQ4o5CLbtDICxAgEeg';
 
-    // Only create supabase client if not already created
     if (!window.supabaseClient) {
         window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('✅ Supabase initialized with URL:', SUPABASE_URL);
+        console.log('✅ Supabase client initialized');
     }
 
     const supabase = window.supabaseClient;

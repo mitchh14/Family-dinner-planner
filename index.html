@@ -46,9 +46,6 @@
                     </div>
                 </form>
                 <div id="login-error" class="error-message"></div>
-                <div id="cache-warning" class="error-message" style="display:none; background:#fff3cd; color:#856404; border:1px solid #ffc107;">
-                    ⚠️ Browser cache issue detected. Please hard refresh: <strong>Ctrl+Shift+R</strong> (Windows/Linux) or <strong>Cmd+Shift+R</strong> (Mac)
-                </div>
             </div>
         </div>
 
@@ -192,18 +189,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=4"></script>
-    <script>
-        // Check if app initialized properly after a short delay
-        setTimeout(() => {
-            if (!window.MealPlannerApp || !window.MealPlannerApp.initialized) {
-                const warning = document.getElementById('cache-warning');
-                if (warning) {
-                    warning.style.display = 'block';
-                }
-                console.error('❌ Meal Planner failed to initialize. This is a browser cache issue. Please hard refresh your browser.');
-            }
-        }, 1000);
-    </script>
+    <script src="app.js?v=5"></script>
 </body>
 </html>
