@@ -1,3 +1,10 @@
+// Prevent double initialization
+if (window.mealPlannerInitialized) {
+    console.warn('Meal Planner already initialized. Skipping duplicate script execution.');
+    throw new Error('Script already loaded');
+}
+window.mealPlannerInitialized = true;
+
 // Supabase Configuration
 // Get your anon key from: Supabase Dashboard > Settings > API > Project API keys > anon public
 const SUPABASE_URL = 'https://plxcgmdicebzojyjdwzc.supabase.co';

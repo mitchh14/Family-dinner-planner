@@ -1,0 +1,13 @@
+# Netlify headers for Meal Planner app
+
+# Cache static assets but allow revalidation
+/styles.css
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# Don't cache the main HTML file
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Don't cache JavaScript to ensure users get updates
+/app.js
+  Cache-Control: no-cache, no-store, must-revalidate
