@@ -193,7 +193,7 @@ function renderMeals(meals) {
     const grid = document.getElementById('meals-grid');
 
     if (meals.length === 0) {
-        grid.innerHTML = '<p>No meals found. Click "Add New Meal" to get started!</p>';
+        grid.innerHTML = '<p>No recipes found. Click "Add Recipe" to get started!</p>';
         return;
     }
 
@@ -207,9 +207,8 @@ function renderMeals(meals) {
                         <div class="meal-rating">${stars}</div>
                     </div>
                 </div>
-                ${meal.main_dish ? `<div class="meal-details"><strong>Main:</strong> ${meal.main_dish}</div>` : ''}
-                ${meal.side_grain ? `<div class="meal-details"><strong>Grain:</strong> ${meal.side_grain}</div>` : ''}
-                ${meal.side_veg ? `<div class="meal-details"><strong>Veg:</strong> ${meal.side_veg}</div>` : ''}
+                ${meal.recipe_link ? `<div class="meal-details"><a href="${meal.recipe_link}" target="_blank">View Recipe →</a></div>` : ''}
+                ${meal.notes ? `<div class="meal-details" style="font-size: 0.85rem; color: #6c757d;">${meal.notes.substring(0, 100)}${meal.notes.length > 100 ? '...' : ''}</div>` : ''}
                 <div class="meal-actions">
                     <button class="btn btn-primary btn-edit" onclick="editMeal('${meal.id}')">Edit</button>
                     <button class="btn btn-danger btn-delete" onclick="deleteMeal('${meal.id}')">Delete</button>
@@ -225,20 +224,15 @@ function showMealForm(mealId = null) {
     if (mealId) {
         const meal = allMeals.find(m => m.id === mealId);
         if (meal) {
-            document.getElementById('meal-form-title').textContent = 'Edit Meal';
+            document.getElementById('meal-form-title').textContent = 'Edit Recipe';
             document.getElementById('meal-name').value = meal.name || '';
-            document.getElementById('main-dish').value = meal.main_dish || '';
-            document.getElementById('side-grain').value = meal.side_grain || '';
-            document.getElementById('side-veg').value = meal.side_veg || '';
             document.getElementById('recipe-link').value = meal.recipe_link || '';
             document.getElementById('meal-notes').value = meal.notes || '';
             setRating(meal.rating || 0);
-            loadIngredients(mealId);
         }
     } else {
-        document.getElementById('meal-form-title').textContent = 'Add New Meal';
+        document.getElementById('meal-form-title').textContent = 'Add New Recipe';
         document.getElementById('meal-form').reset();
-        document.getElementById('ingredients-list').innerHTML = '';
         setRating(0);
     }
 
@@ -303,16 +297,11 @@ async function saveMeal(e) {
     const mealData = {
         user_id: currentUser.id,
         name: document.getElementById('meal-name').value,
-        main_dish: document.getElementById('main-dish').value,
-        side_grain: document.getElementById('side-grain').value,
-        side_veg: document.getElementById('side-veg').value,
         recipe_link: document.getElementById('recipe-link').value,
         notes: document.getElementById('meal-notes').value,
         rating: parseInt(document.getElementById('meal-rating').value) || null,
         updated_at: new Date().toISOString()
     };
-
-    let mealId = currentMealId;
 
     if (currentMealId) {
         // Update existing meal
@@ -322,9 +311,9 @@ async function saveMeal(e) {
             .eq('id', currentMealId);
 
         if (error) {
-            console.error('Error updating meal:', error);
+            console.error('Error updating recipe:', error);
             hideLoading();
-            alert('Error saving meal');
+            alert('Error saving recipe');
             return;
         }
     } else {
@@ -335,17 +324,12 @@ async function saveMeal(e) {
             .select();
 
         if (error) {
-            console.error('Error creating meal:', error);
+            console.error('Error creating recipe:', error);
             hideLoading();
-            alert('Error creating meal');
+            alert('Error creating recipe');
             return;
         }
-
-        mealId = data[0].id;
     }
-
-    // Save ingredients
-    await saveIngredients(mealId);
 
     hideLoading();
     window.location.hash = '#meals';
@@ -411,6 +395,9 @@ function editMeal(mealId) {
 function initWeeklyPlanner() {
     currentWeekStart = getMonday(new Date());
     loadWeeklyPlan();
+    if (allMeals.length === 0) {
+        loadMeals();
+    }
 }
 
 async function loadWeeklyPlan() {
@@ -452,7 +439,7 @@ async function loadWeeklyPlan() {
         currentPlanId = plans[0].id;
     }
 
-    // Load planned meals
+    // Load planned meals (menu + assignments)
     const { data: plannedMeals, error: mealsError } = await supabase
         .from('planned_meals')
         .select(`
@@ -473,7 +460,6 @@ async function loadWeeklyPlan() {
 
 function renderWeeklyPlanner(plannedMeals) {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const mealTypes = ['breakfast', 'lunch', 'dinner'];
 
     const weekEnd = new Date(currentWeekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
@@ -481,33 +467,44 @@ function renderWeeklyPlanner(plannedMeals) {
     document.getElementById('current-week').textContent =
         `${formatDate(currentWeekStart)} - ${formatDate(weekEnd)}`;
 
-    const grid = document.getElementById('planner-grid');
-    grid.innerHTML = days.map((day, dayIndex) => `
-        <div class="day-column">
-            <div class="day-header">${day}</div>
-            ${mealTypes.map(type => {
-                const planned = plannedMeals.find(pm =>
-                    pm.day_of_week === dayIndex && pm.meal_type === type
-                );
+    // Render the weekly menu (staging area)
+    const menuContainer = document.getElementById('weekly-menu');
+    const menuMeals = plannedMeals.filter(pm => pm.day_of_week === null || pm.day_of_week === undefined);
 
-                return `
-                    <div class="meal-slot ${planned ? 'filled' : ''}"
-                         data-day="${dayIndex}"
-                         data-type="${type}"
-                         onclick="openMealModal(${dayIndex}, '${type}')">
-                        <div class="meal-slot-header">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
-                        ${planned ? `
-                            <div class="planned-meal">
-                                <div class="planned-meal-name">${planned.meals.name}</div>
-                                <div class="planned-meal-details">${planned.meals.main_dish || ''}</div>
-                                <button class="remove-planned-meal" onclick="event.stopPropagation(); removePlannedMeal('${planned.id}')">×</button>
-                            </div>
-                        ` : '<div style="color: #999; font-size: 0.85rem;">Click to add</div>'}
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    `).join('');
+    if (menuMeals.length === 0) {
+        menuContainer.innerHTML = '<p class="empty-state">Click "Add Recipe to Menu" to build this week's meal plan</p>';
+    } else {
+        menuContainer.innerHTML = menuMeals.map(pm => `
+            <div class="menu-item" draggable="true" data-meal-id="${pm.meal_id}" data-planned-id="${pm.id}">
+                <div class="menu-item-content">
+                    <strong>${pm.meals.name}</strong>
+                    ${pm.meals.recipe_link ? `<a href="${pm.meals.recipe_link}" target="_blank" onclick="event.stopPropagation()">📖</a>` : ''}
+                </div>
+                <button class="remove-menu-item" onclick="removeFromMenu('${pm.id}')">×</button>
+            </div>
+        `).join('');
+    }
+
+    // Render the weekly calendar
+    const grid = document.getElementById('planner-grid');
+    grid.innerHTML = days.map((day, dayIndex) => {
+        const dayMeals = plannedMeals.filter(pm => pm.day_of_week === dayIndex);
+
+        return `
+            <div class="day-column" data-day="${dayIndex}">
+                <div class="day-header">${day}</div>
+                <div class="day-meals">
+                    ${dayMeals.length > 0 ? dayMeals.map(pm => `
+                        <div class="day-meal-item">
+                            <span>${pm.meals.name}</span>
+                            <button class="remove-day-meal" onclick="unassignMeal('${pm.id}')">×</button>
+                        </div>
+                    `).join('') : '<div class="empty-day">No meals assigned</div>'}
+                </div>
+                <button class="assign-meal-btn" onclick="assignMealToDay(${dayIndex})">+ Assign Meal</button>
+            </div>
+        `;
+    }).join('');
 }
 
 function changeWeek(direction) {
@@ -517,9 +514,8 @@ function changeWeek(direction) {
     loadWeeklyPlan();
 }
 
-async function openMealModal(day, type) {
-    currentSlot = { day, type };
-
+// Add recipe to this week's menu (staging area)
+async function addToMenu() {
     if (allMeals.length === 0) {
         await loadMeals();
     }
@@ -527,62 +523,46 @@ async function openMealModal(day, type) {
     const modal = document.getElementById('meal-modal');
     const list = document.getElementById('modal-meals-list');
 
-    list.innerHTML = allMeals.map(meal => `
-        <div class="modal-meal-item" onclick="addMealToPlan('${meal.id}')">
-            <strong>${meal.name}</strong>
-            ${meal.main_dish ? `<div style="color: #6c757d; font-size: 0.9rem;">${meal.main_dish}</div>` : ''}
-        </div>
-    `).join('');
+    list.innerHTML = allMeals.map(meal => {
+        const stars = '★'.repeat(meal.rating || 0);
+        return `
+            <div class="modal-meal-item" onclick="selectMealForMenu('${meal.id}')">
+                <div>
+                    <strong>${meal.name}</strong>
+                    ${stars ? `<div style="color: #ffc107; font-size: 0.9rem;">${stars}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
 
     modal.classList.remove('hidden');
 }
 
-function closeMealModal() {
-    document.getElementById('meal-modal').classList.add('hidden');
-    currentSlot = null;
-}
-
-async function addMealToPlan(mealId) {
+async function selectMealForMenu(mealId) {
     showLoading();
     closeMealModal();
 
-    // Check if slot already has a meal
-    const { data: existing } = await supabase
-        .from('planned_meals')
-        .select('id')
-        .eq('weekly_plan_id', currentPlanId)
-        .eq('day_of_week', currentSlot.day)
-        .eq('meal_type', currentSlot.type);
-
-    if (existing && existing.length > 0) {
-        // Remove existing
-        await supabase
-            .from('planned_meals')
-            .delete()
-            .eq('id', existing[0].id);
-    }
-
-    // Add new
+    // Add to menu (no day assignment, so day_of_week is null)
     const { error } = await supabase
         .from('planned_meals')
         .insert([{
             weekly_plan_id: currentPlanId,
             meal_id: mealId,
-            day_of_week: currentSlot.day,
-            meal_type: currentSlot.type
+            day_of_week: null,
+            meal_type: null
         }]);
 
     hideLoading();
 
     if (error) {
-        console.error('Error adding meal to plan:', error);
-        alert('Error adding meal to plan');
+        console.error('Error adding to menu:', error);
+        alert('Error adding recipe to menu');
     } else {
         await loadWeeklyPlan();
     }
 }
 
-async function removePlannedMeal(plannedMealId) {
+async function removeFromMenu(plannedMealId) {
     showLoading();
 
     const { error } = await supabase
@@ -593,11 +573,86 @@ async function removePlannedMeal(plannedMealId) {
     hideLoading();
 
     if (error) {
-        console.error('Error removing meal:', error);
-        alert('Error removing meal');
+        console.error('Error removing from menu:', error);
+        alert('Error removing recipe');
     } else {
         await loadWeeklyPlan();
     }
+}
+
+// Assign a meal from the menu to a specific day
+async function assignMealToDay(dayIndex) {
+    currentSlot = { day: dayIndex };
+
+    const modal = document.getElementById('meal-modal');
+    const list = document.getElementById('modal-meals-list');
+
+    // Load planned meals to get the menu
+    const { data: menuMeals } = await supabase
+        .from('planned_meals')
+        .select(`
+            *,
+            meals (*)
+        `)
+        .eq('weekly_plan_id', currentPlanId)
+        .is('day_of_week', null);
+
+    if (!menuMeals || menuMeals.length === 0) {
+        alert('Add some recipes to this week\'s menu first!');
+        return;
+    }
+
+    list.innerHTML = menuMeals.map(pm => `
+        <div class="modal-meal-item" onclick="assignMealToSlot('${pm.id}', ${dayIndex})">
+            <strong>${pm.meals.name}</strong>
+        </div>
+    `).join('');
+
+    modal.classList.remove('hidden');
+}
+
+async function assignMealToSlot(plannedMealId, dayIndex) {
+    showLoading();
+    closeMealModal();
+
+    // Update the planned meal to assign it to this day
+    const { error } = await supabase
+        .from('planned_meals')
+        .update({ day_of_week: dayIndex })
+        .eq('id', plannedMealId);
+
+    hideLoading();
+
+    if (error) {
+        console.error('Error assigning meal:', error);
+        alert('Error assigning meal to day');
+    } else {
+        await loadWeeklyPlan();
+    }
+}
+
+// Unassign meal from day (move back to menu)
+async function unassignMeal(plannedMealId) {
+    showLoading();
+
+    const { error } = await supabase
+        .from('planned_meals')
+        .update({ day_of_week: null })
+        .eq('id', plannedMealId);
+
+    hideLoading();
+
+    if (error) {
+        console.error('Error unassigning meal:', error);
+        alert('Error unassigning meal');
+    } else {
+        await loadWeeklyPlan();
+    }
+}
+
+function closeMealModal() {
+    document.getElementById('meal-modal').classList.add('hidden');
+    currentSlot = null;
 }
 
 // Grocery List Functions
@@ -761,7 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-meal-btn').addEventListener('click', () => showMealForm());
     document.getElementById('cancel-meal-btn').addEventListener('click', () => window.location.hash = '#meals');
     document.getElementById('meal-form').addEventListener('submit', saveMeal);
-    document.getElementById('add-ingredient-btn').addEventListener('click', () => addIngredientRow());
 
     // Search and filter
     document.getElementById('meal-search').addEventListener('input', (e) => {
@@ -784,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Weekly planner
     document.getElementById('prev-week-btn').addEventListener('click', () => changeWeek(-1));
     document.getElementById('next-week-btn').addEventListener('click', () => changeWeek(1));
-    document.getElementById('generate-grocery-btn').addEventListener('click', generateGroceryList);
+    document.getElementById('add-to-menu-btn').addEventListener('click', addToMenu);
 
     // Modal
     document.querySelector('.modal-close').addEventListener('click', closeMealModal);
