@@ -10,8 +10,9 @@ if (!window.MealPlannerApp) {
         window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log('✅ Supabase client initialized');
     }
+}
 
-    const supabase = window.supabaseClient;
+const supabase = window.supabaseClient;
 
 // Global State
 let currentUser = null;
@@ -874,5 +875,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     initApp();
 });
-
-} // End of MealPlannerApp initialization guard
